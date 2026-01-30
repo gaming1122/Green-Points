@@ -1,6 +1,7 @@
 
 export type UserRole = 'ADMIN' | 'USER';
 export type Gender = 'MALE' | 'FEMALE';
+export type AppTheme = 'DARK' | 'LIGHT';
 
 export interface UserProfile {
   id: string;
@@ -14,6 +15,7 @@ export interface UserProfile {
   lastImageUpdate?: string; // ISO date
   isBanned?: boolean;
   notice?: string;
+  theme?: AppTheme;
 }
 
 export enum ViewType {

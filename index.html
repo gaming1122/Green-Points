@@ -18,16 +18,28 @@
     <style>
       :root {
         --gp-emerald: #10b981;
+        --bg-primary: #05070a;
+        --bg-secondary: #0f1115;
+        --text-main: #e2e8f0;
+        --border-color: rgba(255, 255, 255, 0.05);
+      }
+
+      body.light-mode {
+        --bg-primary: #f8fafc;
+        --bg-secondary: #ffffff;
+        --text-main: #0f172a;
+        --border-color: rgba(0, 0, 0, 0.05);
       }
 
       body { 
         font-family: 'Plus Jakarta Sans', sans-serif; 
-        background: #05070a; 
-        color: #e2e8f0; 
+        background: var(--bg-primary); 
+        color: var(--text-main); 
         margin: 0; 
         height: 100dvh;
         width: 100vw;
         overflow: hidden;
+        transition: background-color 0.5s ease, color 0.3s ease;
       }
       
       #root { 
@@ -49,7 +61,7 @@
       }
       
       .custom-scrollbar::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.1);
       }
       
       .custom-scrollbar::-webkit-scrollbar-thumb {
@@ -68,7 +80,13 @@
         background: rgba(255, 255, 255, 0.03); 
         backdrop-filter: blur(12px); 
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.05); 
+        border: 1px solid var(--border-color); 
+      }
+
+      .light-mode .glass {
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
       }
       
       @keyframes xp-float {
@@ -83,6 +101,14 @@
         transform: translate(-50%, -50%);
         z-index: 9999;
         animation: xp-float 2s forwards ease-out; 
+      }
+
+      @keyframes scan-line {
+        0% { top: 0%; }
+        100% { top: 100%; }
+      }
+      .animate-scan-line {
+        animation: scan-line 2.5s linear infinite;
       }
 
       @media (max-width: 768px) {

@@ -15,6 +15,11 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
   const [passwordAttempt, setPasswordAttempt] = useState('');
   const [error, setError] = useState('');
   
+  // QR Scanner State
+  const [isScanning, setIsScanning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   // Bluetooth State
   const [isBleConnected, setIsBleConnected] = useState(false);
   const [bleStatus, setBleStatus] = useState('Disconnected');
@@ -95,6 +100,36 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
     }, 2500);
   }, [user, onUpdate]);
 
+  const startScanner = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsScanning(true);
+      }
+    } catch (err) {
+      setError('Camera access denied.');
+    }
+  };
+
+  const stopScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsScanning(false);
+  };
+
+  const handleSimulatedScan = () => {
+    // Simulate finding a valid QR
+    addLog('QR IDENTIFIED: BIN-X2');
+    stopScanner();
+    connectBluetooth();
+  };
+
   const connectBluetooth = async () => {
     if (!(navigator as any).bluetooth) {
       setError('Bluetooth unsupported.');
@@ -133,6 +168,25 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
   return (
     <div className="space-y-6 md:space-y-10 animate-in slide-in-from-bottom-6 duration-700 relative pb-20">
       
+      {/* QR Scanner Overlay for Mobile */}
+      {isScanning && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6">
+          <div className="absolute inset-0 bg-emerald-500/10 animate-pulse"></div>
+          <div className="w-full max-w-sm aspect-square relative border-2 border-emerald-500 rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(16,185,129,0.4)]">
+             <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover grayscale brightness-125" />
+             <div className="absolute inset-0 border-[40px] border-black/60 pointer-events-none"></div>
+             <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-emerald-500 shadow-[0_0_15px_#10b981] animate-scan-line"></div>
+          </div>
+          <div className="mt-12 text-center space-y-6 relative z-10">
+            <h4 className="text-white font-black uppercase tracking-[0.3em] text-xs">Align Node Identity QR</h4>
+            <div className="flex space-x-4">
+              <button onClick={handleSimulatedScan} className="px-8 py-4 bg-emerald-500 text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl">Simulate Detect</button>
+              <button onClick={stopScanner} className="px-8 py-4 bg-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest border border-white/20 backdrop-blur-md">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dynamic System Notice Banner */}
       {user.notice && (
         <div className="animate-in slide-in-from-top-4 duration-500">
@@ -281,6 +335,15 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
            )}
 
            <div className="mt-8 flex flex-col w-full space-y-3">
+             {/* Phone Only QR Scanner Button */}
+             <button 
+               onClick={startScanner}
+               className="md:hidden w-full py-5 bg-black text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center space-x-3 shadow-xl border border-white/10"
+             >
+               <i className="fas fa-qrcode text-lg"></i>
+               <span>Scan Terminal QR</span>
+             </button>
+
              <button 
                onClick={connectBluetooth}
                disabled={isBleConnected}
@@ -303,7 +366,7 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
             <i className="fas fa-leaf mr-3 text-emerald-500"></i> Environmental Matrix
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
-            <ImpactStat label="Planet Impact" value={`${(user.bottles * 0.25).toFixed(2)}kg CO2`} icon="fa-leaf" color="text-emerald-400" />
+            <ImpactStat label="Planet Impact" value={`${(user.bottles * 0.25).toFixed(2)}kg`} icon="fa-leaf" color="text-emerald-400" />
             <ImpactStat label="Collection Ratio" value={`${user.bottles} BTL / ${user.points} XP`} icon="fa-bolt-lightning" color="text-indigo-400" />
             <ImpactStat label="Rank Level" value={currentRank.title} icon="fa-star" color="text-amber-400" />
           </div>

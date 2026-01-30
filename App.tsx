@@ -27,6 +27,15 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>(ViewType.DASHBOARD);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
+  // Apply Theme Effect
+  useEffect(() => {
+    if (currentUser?.theme === 'LIGHT') {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+  }, [currentUser?.theme]);
+
   // Sync user profile from DB to catch real-time bans/notices
   useEffect(() => {
     const syncWithDb = () => {
@@ -74,6 +83,7 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('gp_active_session');
+    document.body.classList.remove('light-mode');
   };
 
   if (!currentUser) {
@@ -129,7 +139,7 @@ const App: React.FC = () => {
   const displayAvatar = currentUser.profileImage || avatarFallback;
 
   return (
-    <div className="flex h-[100dvh] w-full bg-[#05070a] overflow-hidden">
+    <div className={`flex h-[100dvh] w-full transition-colors duration-500 overflow-hidden ${currentUser.theme === 'LIGHT' ? 'bg-[#f8fafc]' : 'bg-[#05070a]'}`}>
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/80 z-[60] md:hidden backdrop-blur-md" onClick={() => setSidebarOpen(false)}></div>
       )}
@@ -141,6 +151,7 @@ const App: React.FC = () => {
           onLogout={handleLogout} 
           role={currentUser.role}
           userName={currentUser.name}
+          theme={currentUser.theme || 'DARK'}
         />
       </div>
       
@@ -151,26 +162,26 @@ const App: React.FC = () => {
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-1">
                   <div className={`w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] animate-pulse ${currentUser.role === 'ADMIN' ? 'text-indigo-500 bg-indigo-500' : 'text-emerald-500 bg-emerald-500'}`}></div>
-                  <p className={`text-[9px] font-black uppercase tracking-[0.2em] mono ${currentUser.role === 'ADMIN' ? 'text-indigo-400' : 'text-emerald-500'}`}>
+                  <p className={`text-[9px] font-black uppercase tracking-[0.2em] mono ${currentUser.role === 'ADMIN' ? (currentUser.theme === 'LIGHT' ? 'text-indigo-600' : 'text-indigo-400') : (currentUser.theme === 'LIGHT' ? 'text-emerald-600' : 'text-emerald-500')}`}>
                     {currentUser.role} NODE: ONLINE
                   </p>
                 </div>
-                <h1 className="text-xl md:text-5xl font-black text-white tracking-tighter leading-tight uppercase truncate">
+                <h1 className={`text-xl md:text-5xl font-black tracking-tighter leading-tight uppercase truncate ${currentUser.theme === 'LIGHT' ? 'text-slate-900' : 'text-white'}`}>
                   {activeView.replace('_', ' ')}
                 </h1>
               </div>
               
-              <button onClick={() => setSidebarOpen(true)} className="md:hidden ml-4 w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white text-xl shadow-lg active:scale-90 transition-transform">
+              <button onClick={() => setSidebarOpen(true)} className={`md:hidden ml-4 w-12 h-12 rounded-2xl border flex items-center justify-center text-xl shadow-lg active:scale-90 transition-transform ${currentUser.theme === 'LIGHT' ? 'bg-white border-slate-200 text-slate-800' : 'bg-white/5 border-white/10 text-white'}`}>
                 <i className="fas fa-bars-staggered"></i>
               </button>
             </div>
             
-            <div className="flex items-center space-x-3 md:space-x-6 bg-[#0f1115] border border-white/5 p-1.5 pr-4 rounded-2xl md:rounded-3xl glass self-end md:self-auto shadow-xl">
-              <img src={displayAvatar} className="w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl border-2 border-[#05070a] bg-[#1e293b] object-cover" alt="Profile" />
-              <div className="h-6 md:h-8 w-[1px] bg-white/10"></div>
+            <div className={`flex items-center space-x-3 md:space-x-6 border p-1.5 pr-4 rounded-2xl md:rounded-3xl glass self-end md:self-auto shadow-xl ${currentUser.theme === 'LIGHT' ? 'bg-white/80 border-slate-200' : 'bg-[#0f1115] border-white/5'}`}>
+              <img src={displayAvatar} className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl border-2 object-cover ${currentUser.theme === 'LIGHT' ? 'border-slate-100 bg-slate-100' : 'border-[#05070a] bg-[#1e293b]'}`} alt="Profile" />
+              <div className={`h-6 md:h-8 w-[1px] ${currentUser.theme === 'LIGHT' ? 'bg-slate-200' : 'bg-white/10'}`}></div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] md:text-sm font-bold text-white tracking-wide truncate max-w-[100px]">{currentUser.name}</span>
-                <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-tighter ${currentUser.role === 'ADMIN' ? 'text-indigo-400' : 'text-emerald-400'}`}>
+                <span className={`text-[10px] md:text-sm font-bold tracking-wide truncate max-w-[100px] ${currentUser.theme === 'LIGHT' ? 'text-slate-800' : 'text-white'}`}>{currentUser.name}</span>
+                <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-tighter ${currentUser.role === 'ADMIN' ? (currentUser.theme === 'LIGHT' ? 'text-indigo-600' : 'text-indigo-400') : (currentUser.theme === 'LIGHT' ? 'text-emerald-600' : 'text-emerald-400')}`}>
                   {currentUser.id}
                 </span>
               </div>
