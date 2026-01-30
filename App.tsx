@@ -25,6 +25,7 @@ const App: React.FC = () => {
   });
   
   const [activeView, setActiveView] = useState<ViewType>(ViewType.DASHBOARD);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   // Auto-login logic for QR Scans
   useEffect(() => {
@@ -97,43 +98,69 @@ const App: React.FC = () => {
   const displayAvatar = currentUser.profileImage || avatarFallback;
 
   return (
-    <div className="flex h-screen bg-[#05070a] overflow-hidden">
-      <Sidebar 
-        activeView={activeView} 
-        onViewChange={setActiveView} 
-        onLogout={handleLogout} 
-        role={currentUser.role}
-        userName={currentUser.name}
-      />
+    <div className="flex h-[100dvh] w-full bg-[#05070a] overflow-hidden">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-[60] md:hidden backdrop-blur-md"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
+
+      {/* Sidebar - Positioned for all devices */}
+      <div className={`fixed inset-y-0 left-0 z-[70] transition-transform duration-500 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <Sidebar 
+          activeView={activeView} 
+          onViewChange={(view) => {
+            setActiveView(view);
+            setSidebarOpen(false);
+          }} 
+          onLogout={handleLogout} 
+          role={currentUser.role}
+          userName={currentUser.name}
+        />
+      </div>
       
-      <main className="flex-1 overflow-y-auto p-4 md:p-10 relative z-10 scrollbar-hide">
-        <div className="max-w-[1600px] mx-auto">
-          <header className="mb-6 md:mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center space-x-3 mb-2">
-                <div className={`w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] animate-pulse ${currentUser.role === 'ADMIN' ? 'text-indigo-500 bg-indigo-500' : 'text-emerald-500 bg-emerald-500'}`}></div>
-                <p className={`text-[10px] font-black uppercase tracking-[0.3em] mono ${currentUser.role === 'ADMIN' ? 'text-indigo-400' : 'text-emerald-500'}`}>
-                  {currentUser.role} NODE: AUTHORIZED
-                </p>
+      {/* Main Content Area - The Primary Scroller */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-10 relative z-10 w-full custom-scrollbar">
+        <div className="max-w-[1600px] mx-auto min-h-full flex flex-col">
+          <header className="mb-6 md:mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+            <div className="flex items-center justify-between w-full md:w-auto">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-1">
+                  <div className={`w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] animate-pulse ${currentUser.role === 'ADMIN' ? 'text-indigo-500 bg-indigo-500' : 'text-emerald-500 bg-emerald-500'}`}></div>
+                  <p className={`text-[9px] font-black uppercase tracking-[0.2em] mono ${currentUser.role === 'ADMIN' ? 'text-indigo-400' : 'text-emerald-500'}`}>
+                    {currentUser.role} NODE: ONLINE
+                  </p>
+                </div>
+                <h1 className="text-xl md:text-5xl font-black text-white tracking-tighter leading-tight uppercase truncate">
+                  {activeView.replace('_', ' ')}
+                </h1>
               </div>
-              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight uppercase">
-                {activeView.replace('_', ' ')}
-              </h1>
+              
+              <button 
+                onClick={() => setSidebarOpen(true)}
+                className="md:hidden ml-4 w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white text-xl shadow-lg shadow-black/50 active:scale-90 transition-transform"
+                aria-label="Toggle Menu"
+              >
+                <i className="fas fa-bars-staggered"></i>
+              </button>
             </div>
             
-            <div className="flex items-center space-x-4 md:space-x-6 bg-[#0f1115] border border-white/5 p-2 pr-4 md:pr-6 rounded-3xl glass self-start md:self-auto">
-              <img src={displayAvatar} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 border-[#05070a] bg-[#1e293b] object-cover" alt="Profile" />
-              <div className="h-8 w-[1px] bg-white/10"></div>
+            <div className="flex items-center space-x-3 md:space-x-6 bg-[#0f1115] border border-white/5 p-1.5 pr-4 md:pr-6 rounded-2xl md:rounded-3xl glass self-end md:self-auto shadow-xl">
+              <img src={displayAvatar} className="w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl border-2 border-[#05070a] bg-[#1e293b] object-cover" alt="Profile" />
+              <div className="h-6 md:h-8 w-[1px] bg-white/10"></div>
               <div className="flex flex-col items-end">
-                <span className="text-xs md:text-sm font-bold text-white tracking-wide truncate max-w-[120px]">{currentUser.name}</span>
-                <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-tighter ${currentUser.role === 'ADMIN' ? 'text-indigo-400' : 'text-emerald-400'}`}>
+                <span className="text-[10px] md:text-sm font-bold text-white tracking-wide truncate max-w-[80px] md:max-w-[150px]">{currentUser.name}</span>
+                <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-tighter ${currentUser.role === 'ADMIN' ? 'text-indigo-400' : 'text-emerald-400'}`}>
                   {currentUser.id}
                 </span>
               </div>
             </div>
           </header>
 
-          <div className="transition-all duration-500">
+          {/* Main Content Render - Added extra bottom padding for mobile safe area */}
+          <div className="transition-all duration-500 pb-32 md:pb-20 flex-1">
             {renderView()}
           </div>
         </div>
