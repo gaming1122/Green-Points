@@ -1,12 +1,12 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// We create a factory to ensure we always have the latest API key from the environment
 const getAiClient = () => {
-  if (!process.env.API_KEY) {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
     throw new Error("Missing Gemini API Key. Please configure API_KEY in Vercel environment variables.");
   }
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return new GoogleGenAI({ apiKey });
 };
 
 export async function getSustainabilityInsights(bottlesCount: number) {
@@ -21,9 +21,9 @@ export async function getSustainabilityInsights(bottlesCount: number) {
       3. A fun comparison (e.g., energy to power a laptop).
       Keep it brief and professional.`,
     });
-    return response.text || "No insights available.";
+    return response.text || "Insights currently unavailable.";
   } catch (error) {
-    console.error("Gemini Production Error:", error);
-    return "The neural engine is currently re-calibrating. Please check back shortly.";
+    console.error("Gemini Error:", error);
+    return "The neural engine is initializing. Please refresh the analysis in a moment.";
   }
 }
