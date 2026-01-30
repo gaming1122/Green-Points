@@ -6,78 +6,118 @@ const LeaderboardView: React.FC = () => {
   const [realUsers, setRealUsers] = useState<UserProfile[]>([]);
 
   useEffect(() => {
+    // Fetch all users from the persistent global database
     const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}}');
     const users = Object.values(db.USER).map((entry: any) => entry.profile) as UserProfile[];
-    // Sort by points descending
+    
+    // Core Logic: Sort by points descending (Highest points = Rank 1)
     const sorted = users.sort((a, b) => b.points - a.points);
     setRealUsers(sorted);
   }, []);
 
   return (
-    <div className="bg-[#0f1115] rounded-3xl border border-white/5 glass overflow-hidden animate-in fade-in duration-500">
-      <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+    <div className="bg-[#0f1115] rounded-[2.5rem] md:rounded-[3.5rem] border border-white/5 glass overflow-hidden animate-in fade-in duration-700 shadow-2xl">
+      <div className="p-8 md:p-12 border-b border-white/5 flex flex-col md:flex-row justify-between items-center bg-white/5 gap-4">
         <div>
-          <h3 className="text-xl font-black text-white tracking-tighter uppercase">Global Standings</h3>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Real-time Node Ranking</p>
+          <h3 className="text-2xl md:text-3xl font-black text-white tracking-tighter uppercase">Global Standing</h3>
+          <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">Real-time Ranking of Eco-Guardians</p>
         </div>
-        <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-           <span className="text-[10px] font-black text-emerald-400 uppercase">{realUsers.length} Nodes</span>
+        <div className="flex items-center space-x-4">
+          <div className="px-5 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center space-x-2">
+             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+             <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{realUsers.length} Active Nodes</span>
+          </div>
         </div>
       </div>
       
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full">
           <thead>
-            <tr className="text-left text-[10px] font-black text-slate-500 uppercase tracking-widest mono border-b border-white/5">
-              <th className="px-8 py-4">Rank</th>
-              <th className="px-8 py-4">Identity</th>
-              <th className="px-8 py-4">Items</th>
-              <th className="px-8 py-4">Score</th>
-              <th className="px-8 py-4 text-right">Join Date</th>
+            <tr className="text-left text-[10px] font-black text-slate-500 uppercase tracking-widest mono border-b border-white/5 bg-black/20">
+              <th className="px-10 py-6">Rank Position</th>
+              <th className="px-10 py-6">Identity Node</th>
+              <th className="px-10 py-6">Collection</th>
+              <th className="px-10 py-6">CO2 Offset</th>
+              <th className="px-10 py-6 text-right">Sustainability Score</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {realUsers.length > 0 ? realUsers.map((user, index) => (
-              <tr key={user.id} className="group hover:bg-white/5 transition-colors">
-                <td className="px-8 py-5">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${
-                    index === 0 ? 'bg-yellow-500 text-slate-900' : 
-                    index === 1 ? 'bg-slate-300 text-slate-900' : 
-                    index === 2 ? 'bg-amber-600 text-white' : 'bg-white/5 text-slate-500'
-                  }`}>
-                    {index + 1}
-                  </div>
-                </td>
-                <td className="px-8 py-5">
-                  <div className="flex items-center space-x-3">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} className="w-9 h-9 rounded-xl bg-black border border-white/10" alt="P" />
-                    <div>
-                      <div className="text-sm font-black text-white">{user.name}</div>
-                      <div className="text-[10px] text-slate-500 font-bold mono">{user.id}</div>
+            {realUsers.length > 0 ? realUsers.map((user, index) => {
+              const isTop3 = index < 3;
+              const rankColor = index === 0 ? 'bg-amber-400 text-slate-900 shadow-[0_0_20px_rgba(251,191,36,0.3)]' : 
+                                index === 1 ? 'bg-slate-300 text-slate-900' : 
+                                index === 2 ? 'bg-orange-400 text-white' : 'bg-white/5 text-slate-500';
+              
+              return (
+                <tr key={user.id} className={`group hover:bg-white/5 transition-all duration-300 ${index === 0 ? 'bg-emerald-500/5' : ''}`}>
+                  <td className="px-10 py-6">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm transition-transform group-hover:scale-110 ${rankColor}`}>
+                        {index + 1}
+                      </div>
+                      {index === 0 && <i className="fas fa-crown text-amber-400 animate-bounce text-xs"></i>}
                     </div>
-                  </div>
-                </td>
-                <td className="px-8 py-5 text-sm font-bold text-slate-400 mono">
-                  {user.bottles} BTL
-                </td>
-                <td className="px-8 py-5">
-                  <span className="text-emerald-400 font-black text-sm mono">
-                    {user.points.toLocaleString()} PTS
-                  </span>
-                </td>
-                <td className="px-8 py-5 text-right text-[10px] font-bold text-slate-600 mono">
-                  {new Date(user.joinedAt).toLocaleDateString()}
-                </td>
-              </tr>
-            )) : (
+                  </td>
+                  <td className="px-10 py-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="relative">
+                        <img 
+                          src={user.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}&top=${user.gender === 'FEMALE' ? 'longHair,hijab,turban' : 'shortHair,frizzle'}`} 
+                          className="w-12 h-12 rounded-2xl bg-[#05070a] border border-white/10 group-hover:border-emerald-500/50 transition-colors object-cover" 
+                          alt="P" 
+                        />
+                        <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#0f1115] ${isTop3 ? 'bg-emerald-500' : 'bg-slate-600'}`}></div>
+                      </div>
+                      <div>
+                        <div className="text-sm md:text-base font-black text-white group-hover:text-emerald-400 transition-colors tracking-tight">{user.name}</div>
+                        <div className="text-[9px] text-slate-500 font-bold mono uppercase tracking-widest">{user.id}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-10 py-6">
+                    <div className="flex items-center space-x-2">
+                       <i className="fas fa-bottle-water text-slate-700 text-xs"></i>
+                       <span className="text-sm font-black text-slate-300 mono">{user.bottles} Units</span>
+                    </div>
+                  </td>
+                  <td className="px-10 py-6">
+                    <span className="text-[10px] font-black px-3 py-1 bg-white/5 rounded-lg text-emerald-400/80 mono">
+                      {(user.bottles * 0.25).toFixed(2)} KG
+                    </span>
+                  </td>
+                  <td className="px-10 py-6 text-right">
+                    <div className="flex flex-col items-end">
+                      <span className={`text-lg md:text-xl font-black tracking-tighter mono ${index === 0 ? 'text-emerald-400' : 'text-white'}`}>
+                        {user.points.toLocaleString()}
+                      </span>
+                      <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Points</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            }) : (
               <tr>
-                <td colSpan={5} className="py-20 text-center">
-                   <p className="text-slate-600 font-black uppercase tracking-widest text-xs">Waiting for node registration...</p>
+                <td colSpan={5} className="py-32 text-center">
+                   <div className="flex flex-col items-center space-y-4 opacity-20">
+                     <i className="fas fa-satellite-dish text-6xl"></i>
+                     <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-xs">Scanning for active nodes...</p>
+                   </div>
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+      
+      <div className="p-8 bg-black/40 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+          <i className="fas fa-info-circle mr-2"></i> Rank is updated every time a bottle is detected.
+        </p>
+        <div className="flex space-x-2">
+           <div className="w-2 h-2 rounded-full bg-emerald-500/20"></div>
+           <div className="w-2 h-2 rounded-full bg-emerald-500/40"></div>
+           <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+        </div>
       </div>
     </div>
   );

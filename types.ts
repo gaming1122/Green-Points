@@ -12,6 +12,8 @@ export interface UserProfile {
   joinedAt: string;
   profileImage?: string; // Base64 string
   lastImageUpdate?: string; // ISO date
+  isBanned?: boolean;
+  notice?: string;
 }
 
 export enum ViewType {

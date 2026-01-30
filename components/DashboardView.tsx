@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const data = [
@@ -8,17 +8,33 @@ const data = [
 ];
 
 const DashboardView: React.FC = () => {
+  const [totalBottles, setTotalBottles] = useState(12482);
+  const [totalNodes, setTotalNodes] = useState(1240);
+
+  useEffect(() => {
+    // Pull real stats from DB if available
+    const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}}');
+    const users = Object.values(db.USER).map((u: any) => u.profile);
+    if (users.length > 0) {
+      const btlCount = users.reduce((acc: number, u: any) => acc + u.bottles, 0);
+      setTotalBottles(btlCount > 0 ? btlCount : 12482);
+      setTotalNodes(users.length > 0 ? users.length : 1240);
+    }
+  }, []);
+
+  const carbonSaved = (totalBottles * 0.25).toFixed(1);
+
   return (
     <div className="space-y-6 md:space-y-10 animate-in slide-in-from-bottom-6 duration-700">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-        <StatCard label="Recycled" value="12,482" icon="fa-recycle" color="text-emerald-500" />
-        <StatCard label="Nodes" value="1,240" icon="fa-network-wired" color="text-indigo-500" />
-        <StatCard label="CO2 Saved" value="3,205kg" icon="fa-wind" color="text-orange-500" />
+        <StatCard label="Recycled" value={totalBottles.toLocaleString()} icon="fa-recycle" color="text-emerald-500" />
+        <StatCard label="Nodes" value={totalNodes.toLocaleString()} icon="fa-network-wired" color="text-indigo-500" />
+        <StatCard label="CO2 Saved" value={`${carbonSaved}kg`} icon="fa-wind" color="text-orange-500" />
         <StatCard label="Uptime" value="99.9%" icon="fa-clock" color="text-rose-500" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <div className="lg:col-span-2 bg-[#0f1115] p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 glass shadow-2xl">
+        <div className="lg:col-span-2 bg-[#0f1115] p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] border border-white/5 glass shadow-2xl">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 md:mb-10">
             <div>
               <h3 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase">Community Growth</h3>
@@ -45,7 +61,7 @@ const DashboardView: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-[#0f1115] p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 glass shadow-2xl">
+        <div className="bg-[#0f1115] p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] border border-white/5 glass shadow-2xl">
           <h3 className="text-xl md:text-2xl font-black text-white mb-8 md:mb-10 tracking-tighter uppercase">Machine Health</h3>
           <div className="space-y-6 md:space-y-8">
             <HealthItem name="Hub Alpha" value={82} color="bg-emerald-500" />
