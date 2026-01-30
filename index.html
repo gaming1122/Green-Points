@@ -1,0 +1,48 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GreenPoints | Neo-Sustainability IoT</title>
+    
+    <meta name="description" content="Next-gen plastic bottle collection system with real-time IoT integration.">
+    <meta name="theme-color" content="#05070a">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+      body { font-family: 'Plus Jakarta Sans', sans-serif; background: #05070a; color: #e2e8f0; margin: 0; overflow: hidden; }
+      .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+      #root { height: 100vh; width: 100vw; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      @keyframes xp-float {
+        0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+        20% { opacity: 1; transform: translate(-50%, -20px) scale(1.1); }
+        100% { opacity: 0; transform: translate(-50%, -140px) scale(0.8); }
+      }
+      .xp-popup { animation: xp-float 2s forwards ease-out; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>

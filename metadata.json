@@ -1,0 +1,13 @@
+{
+  "name": "GreenPoints Dashboard",
+  "short_name": "GreenPoints",
+  "description": "A smart plastic bottle collection system with IoT integration, student leaderboards, and AI-powered sustainability insights.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05070a",
+  "theme_color": "#10b981",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
