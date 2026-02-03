@@ -10,142 +10,78 @@ interface SettingsViewProps {
 const SettingsView: React.FC<SettingsViewProps> = ({ user, onUpdate }) => {
   const [name, setName] = useState(user.name);
   const [saved, setSaved] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Bluetooth State
+  
+  // BLE States for Hardware Link
   const [isBleConnected, setIsBleConnected] = useState(false);
-  const [bleStatus, setBleStatus] = useState('Disconnected');
-  const [signalLog, setSignalLog] = useState<{msg: string, time: string}[]>([]);
-  const logRef = useRef<{msg: string, time: string}[]>([]);
+  const [bleStatus, setBleStatus] = useState('Standby');
+  const [signalLog, setSignalLog] = useState<{msg: string, time: string, id: number}[]>([]);
+  const logRef = useRef<{msg: string, time: string, id: number}[]>([]);
   const [error, setError] = useState('');
 
   const isLight = user.theme === 'LIGHT';
 
-  const addLog = (msg: string) => {
-    const newLog = { msg, time: new Date().toLocaleTimeString() };
-    logRef.current = [newLog, ...logRef.current].slice(0, 5);
-    setSignalLog([...logRef.current]);
-  };
-
   const handleReward = useCallback((count: number = 1) => {
-    const xpPerBottle = 25; 
     const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}, "EMPLOYEE": {}}');
-    
-    // Update current operator's points and bottles
     const updatedUser = {
       ...user,
-      points: (user.points || 0) + (xpPerBottle * count),
+      points: (user.points || 0) + (25 * count),
       bottles: (user.bottles || 0) + count
     };
     
-    // Update database
+    // Update persistence in DB
     if (db[user.role] && db[user.role][user.id]) {
       db[user.role][user.id].profile = updatedUser;
       localStorage.setItem('gp_database', JSON.stringify(db));
     }
     
-    // Update active session
     localStorage.setItem('gp_active_session', JSON.stringify(updatedUser));
     onUpdate(updatedUser);
+
+    // Update internal log for visual feedback
+    const logMsg = { 
+      id: Date.now(),
+      msg: `BOTTLE DETECTED: +25 XP / +0.08kg CO2`, 
+      time: new Date().toLocaleTimeString() 
+    };
+    logRef.current = [logMsg, ...logRef.current].slice(0, 5);
+    setSignalLog([...logRef.current]);
   }, [user, onUpdate]);
 
   const connectBluetooth = async () => {
-    setError('');
-    
     if (!(navigator as any).bluetooth) {
-      setError('Bluetooth not supported or requires HTTPS.');
+      setError('Bluetooth LE not supported. Use a modern browser on HTTPS.');
       return;
     }
-
+    setBleStatus('Scanning for GP-Bin...');
+    setError('');
+    
     try {
-      const isAvailable = await (navigator as any).bluetooth.getAvailability();
-      if (!isAvailable) {
-        setError('Bluetooth adapter is turned off or not available.');
-        return;
-      }
-
-      setBleStatus('Scanning for Node...');
       const device = await (navigator as any).bluetooth.requestDevice({
         filters: [{ namePrefix: 'GP-Bin' }],
         optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
       });
-      
-      setBleStatus('Connecting...');
+
+      setBleStatus(`Node Linked: ${device.name}`);
       const server = await device.gatt?.connect();
       const service = await server?.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
-      const characteristic = await service?.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+      const char = await service?.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
       
-      await characteristic?.startNotifications();
-      addLog(`LINKED: ${device.name}`);
+      await char?.startNotifications();
       
-      characteristic?.addEventListener('characteristicvaluechanged', (event: any) => {
-        const decodedValue = new TextDecoder().decode(event.target.value);
-        if (decodedValue.trim() === 'B') {
-          addLog('ESP32: BOTTLE DETECTED');
+      char?.addEventListener('characteristicvaluechanged', (e: any) => {
+        const val = new TextDecoder().decode(e.target.value).trim();
+        if (val === 'B') {
           handleReward(1);
-          
-          // Audio feedback
-          try {
-            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
-          } catch(e) {}
         }
-      });
-      
-      device.addEventListener('gattserverdisconnected', () => {
-        setIsBleConnected(false);
-        setBleStatus('Disconnected');
-        addLog('ERR: CONNECTION LOST');
       });
 
       setIsBleConnected(true);
-      setBleStatus('Live & Active');
+      setBleStatus('Sync Active');
     } catch (err: any) {
       console.error(err);
-      if (err.name === 'NotFoundError') {
-        setBleStatus('Disconnected');
-      } else {
-        setError(err.message || 'Connection failed.');
-        setBleStatus('Disconnected');
-      }
+      setError(err.message.includes('User cancelled') ? 'Link Cancelled.' : 'Hardware Link Failed.');
+      setBleStatus('Standby');
     }
-  };
-
-  const handleThemeChange = (newTheme: AppTheme) => {
-    const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}, "EMPLOYEE": {}}');
-    const updatedUser = { ...user, theme: newTheme };
-    if (db[user.role] && db[user.role][user.id]) {
-      db[user.role][user.id].profile = updatedUser;
-      localStorage.setItem('gp_database', JSON.stringify(db));
-    }
-    localStorage.setItem('gp_active_session', JSON.stringify(updatedUser));
-    onUpdate(updatedUser);
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}, "EMPLOYEE": {}}');
-      const updatedUser = { ...user, profileImage: base64, lastImageUpdate: new Date().toISOString() };
-      if (db[user.role] && db[user.role][user.id]) {
-        db[user.role][user.id].profile = updatedUser;
-        localStorage.setItem('gp_database', JSON.stringify(db));
-      }
-      localStorage.setItem('gp_active_session', JSON.stringify(updatedUser));
-      onUpdate(updatedUser);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSave = () => {
@@ -161,95 +97,197 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, onUpdate }) => {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const avatarFallback = `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`;
-  const currentAvatar = user.profileImage || avatarFallback;
+  const handleThemeChange = (newTheme: AppTheme) => {
+    const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}, "EMPLOYEE": {}}');
+    const updatedUser = { ...user, theme: newTheme };
+    if (db[user.role] && db[user.role][user.id]) {
+      db[user.role][user.id].profile = updatedUser;
+      localStorage.setItem('gp_database', JSON.stringify(db));
+    }
+    localStorage.setItem('gp_active_session', JSON.stringify(updatedUser));
+    onUpdate(updatedUser);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 md:space-y-10 animate-in slide-in-from-bottom-4 duration-500 pb-20">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
+    <div className="max-w-[1400px] mx-auto space-y-12 pb-32 animate-in slide-in-from-bottom-8 duration-700">
+      
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
+        <div className="space-y-3">
+          <h2 className={`text-5xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-white'}`}>System Management</h2>
+          <div className="flex items-center space-x-3">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mono">IoT Configuration Portal</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         
-        {/* Profile Card */}
-        <div className={`p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] border glass shadow-2xl ${isLight ? 'bg-white border-slate-100' : 'bg-[#0f1115] border-white/5'}`}>
-          <h3 className={`text-xl font-black tracking-tighter mb-8 uppercase flex items-center ${isLight ? 'text-slate-900' : 'text-white'}`}>
-            <i className="fas fa-id-badge mr-3 text-emerald-500"></i> Personnel ID
-          </h3>
+        {/* Profile Control */}
+        <div className={`p-12 rounded-[3.5rem] border shadow-2xl transition-all ${isLight ? 'bg-white border-slate-200' : 'bg-[#0f1115] border-white/5 glass'}`}>
+          <div className="flex items-center space-x-4 mb-12">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-2xl shadow-inner">
+              <i className="fas fa-id-card"></i>
+            </div>
+            <div>
+              <h3 className={`text-2xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-white'}`}>Identity Core</h3>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Global Profile Access</p>
+            </div>
+          </div>
+          
           <div className="space-y-8">
-            <div className={`flex flex-col items-center space-y-6 p-8 rounded-[2.5rem] border relative group ${isLight ? 'bg-slate-50 border-slate-100' : 'bg-black/20 border-white/5'}`}>
-              <div className="relative">
-                <img src={currentAvatar} className={`w-32 h-32 md:w-40 md:h-40 rounded-[2.5rem] md:rounded-[3.5rem] border-4 object-cover shadow-2xl ${isLight ? 'bg-white border-white' : 'bg-black border-white/5'}`} alt="Avatar" />
-                <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 rounded-xl text-slate-900 flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
-                  <i className="fas fa-camera text-sm"></i>
-                </button>
-              </div>
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+            <div className="group">
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 ml-2">Operator Display Handle</label>
+              <input 
+                type="text" 
+                value={name} 
+                onChange={e => setName(e.target.value)} 
+                className={`w-full border rounded-3xl py-6 px-8 font-black text-lg outline-none transition-all ${isLight ? 'bg-slate-50 border-slate-200 text-slate-800 focus:border-emerald-500' : 'bg-black/40 border-white/5 text-white focus:border-emerald-500/50'}`} 
+              />
             </div>
-            <div className="space-y-6">
+            <button 
+              onClick={handleSave} 
+              className="w-full py-6 bg-emerald-500 text-slate-900 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl hover:bg-emerald-400 active:scale-95 transition-all shadow-emerald-500/20"
+            >
+              {saved ? <><i className="fas fa-check-double mr-2"></i> Synced</> : 'Commit Updates'}
+            </button>
+          </div>
+        </div>
+
+        {/* HIGH-TECH HARDWARE HUB (Admin Setting Option) */}
+        <div className={`p-12 rounded-[3.5rem] border shadow-2xl transition-all ${isLight ? 'bg-white border-slate-200' : 'bg-[#0f1115] border-white/5 glass'}`}>
+          <div className="flex items-center justify-between mb-12">
+            <div className="flex items-center space-x-4">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-2xl shadow-inner">
+                <i className="fas fa-microchip"></i>
+              </div>
               <div>
-                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-2">Operator Name</label>
-                <input type="text" value={name} onChange={e => setName(e.target.value)} className={`w-full border rounded-2xl py-4 px-6 outline-none focus:border-emerald-500/50 font-bold ${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#05070a] border-white/5 text-white'}`} />
+                <h3 className={`text-2xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-white'}`}>IoT Ingestion Hub</h3>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">ESP32 Bluetooth Link</p>
               </div>
-              <button onClick={handleSave} className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all ${saved ? 'bg-emerald-500 text-slate-900' : 'bg-white/5 text-white border border-white/10 hover:bg-white/10'}`}>
-                {saved ? 'Changes Commited' : 'Update Profile'}
-              </button>
             </div>
+            {isBleConnected && (
+              <div className="px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-widest border border-emerald-500/20 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                LIVE SYNC
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Hardware Configuration */}
-        <div className="space-y-6 md:space-y-8">
-          <div className={`p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] border glass shadow-2xl overflow-hidden relative ${isLight ? 'bg-white border-slate-100' : 'bg-[#0f1115] border-white/5'}`}>
-            <div className={`absolute top-0 right-0 w-32 h-32 blur-[40px] opacity-20 rounded-full transition-all duration-1000 ${isBleConnected ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-500'}`}></div>
-            
-            <h3 className={`text-xl font-black tracking-tighter mb-8 uppercase flex items-center relative z-10 ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              <i className="fas fa-satellite-dish mr-3 text-indigo-400"></i> Hardware Terminal
-            </h3>
-            
-            <div className="relative z-10">
-              <div className={`mb-6 p-5 rounded-3xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/5 shadow-inner'}`}>
-                <div className="flex items-center justify-between mb-3">
-                   <span className={`text-[10px] font-black uppercase tracking-widest ${isBleConnected ? 'text-emerald-500' : 'text-slate-500'}`}>Status: {bleStatus}</span>
-                   {isBleConnected && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
+          <div className="space-y-8">
+             {/* Scanner Interface */}
+             <div className="relative group">
+                <div className={`aspect-video rounded-[2.5rem] border flex flex-col items-center justify-center space-y-6 transition-all relative overflow-hidden ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-black/40 border-white/5 shadow-inner'}`}>
+                  <div className={`transition-all duration-700 ${isBleConnected ? 'text-emerald-500 scale-110 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'text-slate-700 grayscale'}`}>
+                    <i className={`fas ${isBleConnected ? 'fa-link' : 'fa-satellite-dish'} text-6xl`}></i>
+                  </div>
+                  <div className="text-center px-6">
+                    <p className={`text-[11px] font-black uppercase tracking-[0.3em] mb-2 ${isBleConnected ? 'text-emerald-500' : 'text-slate-600'}`}>
+                      {isBleConnected ? 'Protocol Active' : 'Waiting for Signal'}
+                    </p>
+                    <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mono">{bleStatus}</p>
+                  </div>
+                  
+                  {/* The Scan Line Effect */}
+                  <div className={`absolute top-0 left-0 w-full h-[2px] shadow-[0_0_15px_rgba(16,185,129,0.8)] transition-all ${isBleConnected ? 'bg-emerald-500 animate-scan-line' : 'bg-white/5'}`}></div>
                 </div>
-                
-                <div className={`space-y-1 h-28 overflow-y-auto custom-scrollbar pr-2 p-3 rounded-xl mb-4 font-mono text-[9px] ${isLight ? 'bg-white text-slate-800' : 'bg-black/60 text-slate-400'}`}>
-                  {signalLog.map((log, i) => (
-                    <div key={i} className={`flex justify-between items-center ${i === 0 ? 'text-emerald-500' : 'opacity-40'}`}>
-                      <span>> {log.msg}</span>
-                      <span className="opacity-30">{log.time}</span>
+
+                <div className="mt-8 flex gap-4">
+                  <button 
+                    onClick={connectBluetooth} 
+                    disabled={isBleConnected} 
+                    className={`flex-1 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl ${
+                      isBleConnected 
+                      ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 shadow-indigo-600/20'
+                    }`}
+                  >
+                     {isBleConnected ? 'Hardware Linked' : 'Connect ESP32 Node'}
+                  </button>
+                  {isBleConnected && (
+                    <button 
+                      onClick={() => { setIsBleConnected(false); setBleStatus('Standby'); }}
+                      className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-lg"
+                    >
+                      <i className="fas fa-power-off"></i>
+                    </button>
+                  )}
+                </div>
+             </div>
+
+             {/* Calculation Logic Info */}
+             <div className={`p-6 rounded-3xl border flex items-center gap-6 ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-black/20 border-white/5'}`}>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-lg">
+                   <i className="fas fa-calculator"></i>
+                </div>
+                <div className="flex-1">
+                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Inbound Reward Mapping</p>
+                   <p className="text-xs font-black text-white tracking-tight uppercase">1 Signal = 1 Bottle = 25 XP = 0.08kg CO2</p>
+                </div>
+             </div>
+
+             {/* Live Data Log Feed */}
+             <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Node Telemetry</p>
+                  <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest animate-pulse">Live Feed</span>
+                </div>
+                <div className={`min-h-[160px] p-8 rounded-[2.5rem] border flex flex-col space-y-4 transition-all ${isLight ? 'bg-slate-50 border-slate-200 shadow-inner' : 'bg-black/60 border-white/5 shadow-2xl'}`}>
+                  {signalLog.length > 0 ? signalLog.map(log => (
+                    <div key={log.id} className="flex justify-between items-center animate-in slide-in-from-left-4 duration-300 border-l-2 border-emerald-500 pl-4">
+                       <div className="flex items-center space-x-3">
+                         <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tight">{log.msg}</span>
+                       </div>
+                       <span className="text-[9px] font-bold text-slate-600 mono">{log.time}</span>
                     </div>
-                  ))}
-                  {signalLog.length === 0 && <p className="text-center mt-8 opacity-20 uppercase tracking-widest">Scanning For Signal</p>}
+                  )) : (
+                    <div className="flex-1 flex flex-col items-center justify-center opacity-20 space-y-3">
+                       <i className="fas fa-wifi text-3xl"></i>
+                       <p className="text-[10px] font-black uppercase tracking-widest">Awaiting Pulse</p>
+                    </div>
+                  )}
                 </div>
+             </div>
 
-                <button 
-                  onClick={connectBluetooth}
-                  disabled={isBleConnected}
-                  className={`w-full py-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-xl ${isBleConnected ? 'bg-emerald-500 text-slate-900 shadow-emerald-500/20' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-600/30'}`}
-                >
-                  <i className={`fas ${isBleConnected ? 'fa-link' : 'fa-bluetooth-b'} text-lg`}></i>
-                  <span>{isBleConnected ? 'Active Link' : 'Pair with ESP32 Node'}</span>
-                </button>
-              </div>
-
-              {error && (
-                <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl flex items-start space-x-3 animate-shake">
-                   <i className="fas fa-triangle-exclamation text-rose-500 mt-1"></i>
-                   <p className="text-rose-500 text-[9px] font-black uppercase tracking-widest leading-relaxed">{error}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={`p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border glass shadow-2xl ${isLight ? 'bg-white border-slate-100' : 'bg-[#0f1115] border-white/5'}`}>
-            <h3 className={`text-xl font-black tracking-tighter mb-6 uppercase flex items-center ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              <i className="fas fa-adjust mr-3 text-amber-500"></i> Interface Config
-            </h3>
-            <div className={`flex p-1.5 rounded-2xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#05070a] border-white/5'}`}>
-               <button onClick={() => handleThemeChange('DARK')} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all ${user.theme === 'DARK' ? 'bg-[#0f1115] text-white shadow-xl' : 'text-slate-500 hover:text-slate-400'}`}>Midnight Protocol</button>
-               <button onClick={() => handleThemeChange('LIGHT')} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all ${user.theme === 'LIGHT' ? 'bg-white text-slate-900 shadow-xl' : 'text-slate-500 hover:text-slate-600'}`}>Arctic Logic</button>
-            </div>
+             {error && (
+               <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[9px] font-black uppercase text-center rounded-2xl animate-shake tracking-widest">
+                 {error}
+               </div>
+             )}
           </div>
         </div>
+
+        {/* Interface Modality */}
+        <div className={`p-12 rounded-[3.5rem] border shadow-2xl lg:col-span-2 transition-all ${isLight ? 'bg-white border-slate-200' : 'bg-[#0f1115] border-white/5 glass'}`}>
+          <div className="flex items-center space-x-4 mb-10">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 text-2xl shadow-inner">
+              <i className="fas fa-palette"></i>
+            </div>
+            <div>
+              <h3 className={`text-2xl font-black tracking-tighter uppercase ${isLight ? 'text-slate-900' : 'text-white'}`}>Visual Modality</h3>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Global Theme Engine</p>
+            </div>
+          </div>
+
+          <div className={`flex p-3 rounded-[2.5rem] border shadow-inner ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#05070a] border-white/5'}`}>
+             <button 
+              onClick={() => handleThemeChange('DARK')} 
+              className={`flex-1 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-3 ${user.theme === 'DARK' ? 'bg-[#0f1115] text-white shadow-2xl border border-white/10' : 'text-slate-500 hover:text-slate-400'}`}
+             >
+               <i className="fas fa-moon"></i>
+               <span>Dark Interface</span>
+             </button>
+             <button 
+              onClick={() => handleThemeChange('LIGHT')} 
+              className={`flex-1 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-3 ${user.theme === 'LIGHT' ? 'bg-white text-slate-900 shadow-2xl border border-slate-200' : 'text-slate-500 hover:text-slate-600'}`}
+             >
+               <i className="fas fa-sun"></i>
+               <span>Light Interface</span>
+             </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );
