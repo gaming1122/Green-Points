@@ -140,13 +140,13 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       <div className="w-full lg:w-1/2 flex flex-col relative overflow-y-auto custom-scrollbar bg-[#05070a]">
         
         {/* Top-Right Action Row */}
-        <div className="absolute top-8 right-8 z-50 flex items-center space-x-4">
+        <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50 flex items-center space-x-2 md:space-x-4">
           {authContext === 'STUDENT' && mode === 'LOGIN' && (
             <button 
               onClick={() => setShowQrModal(true)}
-              className="flex items-center space-x-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-widest text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all shadow-2xl"
+              className="flex items-center space-x-2 md:space-x-3 px-4 md:px-6 py-2 md:py-3 bg-white/5 border border-white/10 rounded-xl md:rounded-2xl text-[7px] md:text-[9px] font-black uppercase tracking-widest text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all shadow-2xl"
             >
-              <i className="fas fa-qrcode text-sm"></i>
+              <i className="fas fa-qrcode text-xs md:text-sm"></i>
               <span>Quick Sync</span>
             </button>
           )}
@@ -154,42 +154,42 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           {authContext === 'ADMIN' && (
             <button 
               onClick={() => { setAuthContext('STUDENT'); setMode('LOGIN'); }}
-              className="px-6 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-xl"
+              className="px-4 md:px-6 py-2 md:py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl md:rounded-2xl text-[7px] md:text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-xl"
             >
-              <i className="fas fa-arrow-left mr-2"></i>
-              Back to Student
+              <i className="fas fa-arrow-left mr-1 md:mr-2"></i>
+              Back
             </button>
           )}
         </div>
 
         {/* QR MODAL */}
         {showQrModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-            <div className="bg-[#0f1115] w-full max-w-sm rounded-[3.5rem] border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.1)] p-12 text-center relative overflow-hidden">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+            <div className="bg-[#0f1115] w-full max-w-sm rounded-[2.5rem] md:rounded-[3.5rem] border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.1)] p-8 md:p-12 text-center relative overflow-hidden">
               <button 
                 onClick={() => setShowQrModal(false)}
-                className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors"
+                className="absolute top-6 right-6 md:top-8 md:right-8 text-slate-500 hover:text-white transition-colors"
               >
-                <i className="fas fa-times text-xl"></i>
+                <i className="fas fa-times text-lg md:text-xl"></i>
               </button>
               
-              <div className="space-y-8">
-                <div className="space-y-3">
-                  <h3 className="text-2xl font-black uppercase tracking-tighter">Mobile Gateway</h3>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Scan with GreenPoints Mobile app</p>
+              <div className="space-y-6 md:space-y-8">
+                <div className="space-y-2 md:space-y-3">
+                  <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Mobile Gateway</h3>
+                  <p className="text-[7px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest">Scan with GreenPoints Mobile app</p>
                 </div>
 
-                <div className="relative group p-4 bg-white rounded-[2.5rem] shadow-2xl border-4 border-emerald-500/20 mx-auto w-fit">
+                <div className="relative group p-3 md:p-4 bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-4 border-emerald-500/20 mx-auto w-fit">
                   <img 
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${sessionId}&bgcolor=ffffff&color=05070a`} 
                     alt="Quick Login QR" 
-                    className="w-40 h-40 md:w-48 md:h-48" 
+                    className="w-32 h-32 md:w-48 md:h-48" 
                   />
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-emerald-500/60 animate-scan-line shadow-[0_0_15px_#10b981]"></div>
                 </div>
 
-                <div className="pt-4">
-                  <p className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest mono animate-pulse">
+                <div className="pt-2 md:pt-4">
+                  <p className="text-[8px] md:text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest mono animate-pulse">
                     Awaiting Handshake...
                   </p>
                 </div>
@@ -198,42 +198,42 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        <div className="flex-1 flex items-center justify-center p-8 sm:p-16">
-          <div className="w-full max-w-md space-y-10">
+        <div className="flex-1 flex items-center justify-center p-6 sm:p-16">
+          <div className="w-full max-w-md space-y-8 md:space-y-10">
             
-            <div className="space-y-4">
-              <div className={`inline-block px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-[0.3em] ${authContext === 'ADMIN' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+            <div className="space-y-3 md:space-y-4">
+              <div className={`inline-block px-3 py-1 md:px-4 md:py-1.5 rounded-full border text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em] ${authContext === 'ADMIN' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
                 {authContext === 'ADMIN' ? 'Secure Terminal' : 'Global Identity'}
               </div>
               <div className="flex justify-between items-end">
-                <h2 className="text-5xl font-black tracking-tighter uppercase leading-none">
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">
                   {mode === 'SIGNUP' ? 'Join' : 'Login'}
                 </h2>
                 {authContext === 'STUDENT' && (
                   <button 
                     onClick={() => setMode(mode === 'LOGIN' ? 'SIGNUP' : 'LOGIN')}
-                    className="text-[10px] font-black uppercase tracking-widest text-emerald-500 hover:text-white transition-colors pb-1 border-b border-emerald-500/30"
+                    className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-emerald-500 hover:text-white transition-colors pb-1 border-b border-emerald-500/30"
                   >
-                    {mode === 'LOGIN' ? 'Register Account' : 'Back to Sign In'}
+                    {mode === 'LOGIN' ? 'Register' : 'Sign In'}
                   </button>
                 )}
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
               {mode === 'SIGNUP' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
                   <div className="group">
-                    <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-4">Full Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Full Name" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white font-bold outline-none focus:border-emerald-500/50" required />
+                    <label className="block text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2 md:mb-3 ml-4">Full Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Enter Name" className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl py-3 md:py-4 px-5 md:px-6 text-white text-sm md:text-base font-bold outline-none focus:border-emerald-500/50" required />
                   </div>
                   <div className="group">
-                    <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-4">Gender Modality</label>
-                    <div className="flex gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                      <button type="button" onClick={() => setGender('MALE')} className={`flex-1 py-3 rounded-xl transition-all flex items-center justify-center text-xl ${gender === 'MALE' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}>
+                    <label className="block text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2 md:mb-3 ml-4">Modality</label>
+                    <div className="flex gap-2 md:gap-3 bg-white/5 p-1 rounded-xl md:rounded-2xl border border-white/10">
+                      <button type="button" onClick={() => setGender('MALE')} className={`flex-1 py-2 md:py-3 rounded-lg md:rounded-xl transition-all flex items-center justify-center text-lg md:text-xl ${gender === 'MALE' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}>
                         <i className="fas fa-mars"></i>
                       </button>
-                      <button type="button" onClick={() => setGender('FEMALE')} className={`flex-1 py-3 rounded-xl transition-all flex items-center justify-center text-xl ${gender === 'FEMALE' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}>
+                      <button type="button" onClick={() => setGender('FEMALE')} className={`flex-1 py-2 md:py-3 rounded-lg md:rounded-xl transition-all flex items-center justify-center text-lg md:text-xl ${gender === 'FEMALE' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}>
                         <i className="fas fa-venus"></i>
                       </button>
                     </div>
@@ -241,19 +241,19 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 </div>
               )}
 
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 <div>
-                  <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-4">Student ID</label>
-                  <input type="text" value={id} onChange={e => setId(e.target.value)} placeholder="ID Code" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white font-bold outline-none focus:border-emerald-500/50" required />
+                  <label className="block text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2 md:mb-3 ml-4">ID Code</label>
+                  <input type="text" value={id} onChange={e => setId(e.target.value)} placeholder="Enter ID" className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl py-3 md:py-4 px-5 md:px-6 text-white text-sm md:text-base font-bold outline-none focus:border-emerald-500/50" required />
                 </div>
                 <div>
-                  <label className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-4">Password</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white font-bold tracking-[0.4em] outline-none focus:border-emerald-500/50" required />
+                  <label className="block text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2 md:mb-3 ml-4">Password</label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••" className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl py-3 md:py-4 px-5 md:px-6 text-white text-sm md:text-base font-bold tracking-[0.4em] outline-none focus:border-emerald-500/50" required />
                 </div>
               </div>
 
               {error && (
-                <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[9px] font-black uppercase text-center rounded-2xl animate-shake tracking-widest">
+                <div className="p-3 md:p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[7px] md:text-[9px] font-black uppercase text-center rounded-xl md:rounded-2xl animate-shake tracking-widest">
                   {error}
                 </div>
               )}
@@ -261,21 +261,21 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               <button 
                 type="submit" 
                 disabled={loading}
-                className={`w-full py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-2xl active:scale-95 ${authContext === 'ADMIN' ? 'bg-indigo-600' : 'bg-emerald-500 text-slate-900'}`}
+                className={`w-full py-4 md:py-5 rounded-[1.5rem] md:rounded-[2rem] font-black text-[9px] md:text-[11px] uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all shadow-2xl active:scale-95 ${authContext === 'ADMIN' ? 'bg-indigo-600' : 'bg-emerald-500 text-slate-900'}`}
               >
                 {loading ? <i className="fas fa-spinner fa-spin"></i> : (mode === 'SIGNUP' ? 'Create Node' : 'Initialize')}
               </button>
             </form>
 
-            {/* FOOTER ACTION (Integrated Admin Entry) */}
+            {/* FOOTER ACTION */}
             {mode === 'LOGIN' && authContext === 'STUDENT' && (
-              <div className="pt-8 flex flex-col items-center animate-in fade-in duration-1000">
+              <div className="pt-6 md:pt-8 flex flex-col items-center animate-in fade-in duration-1000">
                 <button 
                   onClick={() => { setAuthContext('ADMIN'); setError(''); }}
                   className="group flex items-center space-x-2 text-slate-700 hover:text-indigo-400 transition-colors py-2 px-6"
                 >
-                  <i className="fas fa-shield-halved text-[10px] opacity-40 group-hover:opacity-100"></i>
-                  <span className="text-[9px] font-black uppercase tracking-widest">System Administration</span>
+                  <i className="fas fa-shield-halved text-[8px] md:text-[10px] opacity-40 group-hover:opacity-100"></i>
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">System Admin</span>
                 </button>
               </div>
             )}
