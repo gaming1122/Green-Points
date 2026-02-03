@@ -1,6 +1,7 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile } from '../types';
+import jsQR from 'https://esm.sh/jsqr@1.4.0';
 
 interface UserPortalViewProps {
   user: UserProfile;
@@ -23,7 +24,6 @@ const ImpactStat: React.FC<{label: string; value: string; icon: string; color: s
 
 const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUpdate }) => {
   const [user, setUser] = useState<UserProfile>(initialUser);
-  const [showXpPopup, setShowXpPopup] = useState(false);
   const [qrUnlocked, setQrUnlocked] = useState(false);
   const [passwordAttempt, setPasswordAttempt] = useState('');
   const [error, setError] = useState('');
@@ -32,10 +32,11 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
   
   // Scanner States
   const [showScanner, setShowScanner] = useState(false);
-  const [scannerActive, setScannerActive] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'IDLE' | 'SCANNING' | 'SUCCESS' | 'ERROR'>('IDLE');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const requestRef = useRef<number>(null);
 
   useEffect(() => {
     setUser(initialUser);
@@ -44,71 +45,83 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
   const clearNotice = () => {
     const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}, "EMPLOYEE": {}}');
     const updatedUser = { ...user, notice: undefined };
-    
     if (db[user.role] && db[user.role][user.id]) {
       db[user.role][user.id].profile = updatedUser;
       localStorage.setItem('gp_database', JSON.stringify(db));
     }
-    
     localStorage.setItem('gp_active_session', JSON.stringify(updatedUser));
     setUser(updatedUser);
     onUpdate(updatedUser);
   };
 
-  // REMOTE SYNC LOGIC
+  const stopScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (requestRef.current) {
+      cancelAnimationFrame(requestRef.current);
+    }
+    setShowScanner(false);
+    setSyncStatus('IDLE');
+  };
+
+  const handleSync = (sessionId: string) => {
+    setSyncStatus('SUCCESS');
+    // Transmit user profile to the polling session key
+    localStorage.setItem(`gp_sync_${sessionId}`, JSON.stringify(user));
+    
+    // Auto-close after success feedback
+    setTimeout(() => {
+      stopScanner();
+    }, 2000);
+  };
+
+  const scanFrame = () => {
+    if (!videoRef.current || !canvasRef.current || syncStatus === 'SUCCESS') return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA && context) {
+      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code && code.data.startsWith('GP-SESS-')) {
+        handleSync(code.data);
+        return;
+      }
+    }
+    requestRef.current = requestAnimationFrame(scanFrame);
+  };
+
   const startScanner = async () => {
     setShowScanner(true);
     setSyncStatus('SCANNING');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setScannerActive(true);
-      }
-      
-      if ('BarcodeDetector' in window) {
-        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
-        const detectFrame = async () => {
-          if (!videoRef.current || !scannerActive) return;
-          try {
-            const barcodes = await detector.detect(videoRef.current);
-            if (barcodes.length > 0) {
-              const rawValue = barcodes[0].rawValue;
-              if (rawValue.startsWith('GP-SESS-')) {
-                handleSync(rawValue);
-                return;
-              }
-            }
-            requestAnimationFrame(detectFrame);
-          } catch (e) {
-            console.error(e);
-          }
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play();
+          requestRef.current = requestAnimationFrame(scanFrame);
         };
-        detectFrame();
       }
     } catch (err) {
       console.error("Camera access denied", err);
       setSyncStatus('ERROR');
       setError("CAMERA_ERROR: Access Denied");
     }
-  };
-
-  const stopScanner = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-    }
-    setScannerActive(false);
-    setShowScanner(false);
-  };
-
-  const handleSync = (sessionId: string) => {
-    setSyncStatus('SUCCESS');
-    localStorage.setItem(`gp_sync_${sessionId}`, JSON.stringify(user));
-    setTimeout(() => {
-      stopScanner();
-      setSyncStatus('IDLE');
-    }, 2000);
   };
 
   const currentRank = (pts: number) => {
@@ -124,7 +137,7 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
   return (
     <div className="space-y-6 md:space-y-10 animate-in slide-in-from-bottom-6 duration-700 relative pb-20 w-full max-w-[1600px] mx-auto">
       
-      {/* ACTION HEADER: Responsive Buttons */}
+      {/* ACTION HEADER */}
       <div className="flex flex-wrap items-center justify-end gap-3 md:gap-4 mb-4 lg:absolute lg:top-0 lg:right-0 lg:z-20">
         <button 
           onClick={startScanner}
@@ -153,41 +166,56 @@ const UserPortalView: React.FC<UserPortalViewProps> = ({ user: initialUser, onUp
 
       {/* REMOTE SYNC SCANNER MODAL */}
       {showScanner && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-6 bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-3xl animate-in fade-in duration-300">
            <div className={`w-full max-w-md rounded-[2.5rem] md:rounded-[3.5rem] border shadow-2xl overflow-hidden relative ${isLight ? 'bg-white border-slate-200' : 'bg-[#0f1115] border-white/10'}`}>
-              <button onClick={stopScanner} className="absolute top-6 right-6 md:top-8 md:right-8 z-50 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-rose-500 transition-all">
+              <button onClick={stopScanner} className="absolute top-6 right-6 md:top-8 md:right-8 z-50 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-rose-500 transition-all border border-white/10">
                 <i className="fas fa-times"></i>
               </button>
 
               <div className="p-8 md:p-12 text-center">
                  <div className="mb-6 md:mb-8">
-                   <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-white mb-2">Sync Terminal</h3>
-                   <p className="text-[8px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest">Point camera at Login QR</p>
+                   <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-white mb-2">Sync Engine</h3>
+                   <p className="text-[8px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest">Scanning for Login Identity QR</p>
                  </div>
 
                  <div className="relative aspect-square rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-black border-4 border-emerald-500/20 shadow-2xl">
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover grayscale opacity-80" />
+                    <canvas ref={canvasRef} className="hidden" />
+                    
                     {syncStatus === 'SUCCESS' ? (
                       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-emerald-500 text-slate-900 animate-in zoom-in-95">
-                         <i className="fas fa-check-circle text-5xl md:text-7xl mb-4"></i>
-                         <p className="font-black uppercase tracking-[0.2em] text-xs md:text-sm">Identity Linked</p>
+                         <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-4">
+                            <i className="fas fa-check text-4xl"></i>
+                         </div>
+                         <p className="font-black uppercase tracking-[0.2em] text-xs md:text-sm">Remote Login Active</p>
                       </div>
                     ) : (
-                      <>
-                        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover grayscale opacity-60" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                           <div className="w-32 h-32 md:w-48 md:h-48 border-2 border-emerald-500/50 rounded-[1.5rem] md:rounded-[2rem] relative">
-                              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-scan-line shadow-[0_0_15px_#10b981]"></div>
-                           </div>
-                        </div>
-                      </>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                         {/* Scanning Guide Frame */}
+                         <div className="w-48 h-48 md:w-64 md:h-64 border-2 border-emerald-500/50 rounded-[2rem] relative">
+                            {/* Corner Accents */}
+                            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl"></div>
+                            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl"></div>
+                            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl"></div>
+                            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-500 rounded-br-xl"></div>
+                            
+                            {/* Animated Scan Line */}
+                            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-emerald-500 to-transparent animate-scan-line shadow-[0_0_20px_#10b981]"></div>
+                         </div>
+                      </div>
                     )}
                  </div>
 
-                 <div className="mt-8 md:mt-10 p-5 md:p-6 bg-white/5 rounded-[1.5rem] md:rounded-3xl border border-white/5">
-                    <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">
-                       {syncStatus === 'SCANNING' ? 'SEARCHING FOR PAYLOAD...' : 'PROTOCOL READY'}
-                    </p>
-                    <p className="text-[7px] md:text-[8px] font-bold text-emerald-500 uppercase tracking-widest mono">SECURE_SYNC_v4.2</p>
+                 <div className="mt-8 md:mt-10 p-5 md:p-6 bg-white/5 rounded-[1.5rem] md:rounded-3xl border border-white/5 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+                       <i className={`fas ${syncStatus === 'SCANNING' ? 'fa-circle-notch fa-spin' : 'fa-wifi'}`}></i>
+                    </div>
+                    <div className="text-left overflow-hidden">
+                      <p className="text-[9px] md:text-[11px] font-black text-white uppercase tracking-widest truncate">
+                        {syncStatus === 'SCANNING' ? 'Align QR within Frame' : 'Identity Verified'}
+                      </p>
+                      <p className="text-[7px] md:text-[8px] font-bold text-slate-500 uppercase tracking-[0.3em] mono">PROTOCOL_REMOTE_SYNC_v2.0</p>
+                    </div>
                  </div>
               </div>
            </div>
