@@ -10,7 +10,7 @@ const LeaderboardView: React.FC = () => {
     const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}}');
     const users = Object.values(db.USER).map((entry: any) => entry.profile) as UserProfile[];
     
-    // Core Logic: Sort by points descending (Highest points = Rank 1)
+    // Sort by points descending
     const sorted = users.sort((a, b) => b.points - a.points);
     setRealUsers(sorted);
   }, []);
@@ -34,10 +34,10 @@ const LeaderboardView: React.FC = () => {
         <table className="w-full">
           <thead>
             <tr className="text-left text-[10px] font-black text-slate-500 uppercase tracking-widest mono border-b border-white/5 bg-black/20">
-              <th className="px-10 py-6">Rank Position</th>
+              <th className="px-10 py-6">Rank</th>
               <th className="px-10 py-6">Identity Node</th>
               <th className="px-10 py-6">Collection</th>
-              <th className="px-10 py-6">CO2 Offset</th>
+              <th className="px-10 py-6">CO2 Offset (KG)</th>
               <th className="px-10 py-6 text-right">Sustainability Score</th>
             </tr>
           </thead>
@@ -62,7 +62,7 @@ const LeaderboardView: React.FC = () => {
                     <div className="flex items-center space-x-4">
                       <div className="relative">
                         <img 
-                          src={user.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}&top=${user.gender === 'FEMALE' ? 'longHair,hijab,turban' : 'shortHair,frizzle'}`} 
+                          src={user.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
                           className="w-12 h-12 rounded-2xl bg-[#05070a] border border-white/10 group-hover:border-emerald-500/50 transition-colors object-cover" 
                           alt="P" 
                         />
@@ -82,7 +82,7 @@ const LeaderboardView: React.FC = () => {
                   </td>
                   <td className="px-10 py-6">
                     <span className="text-[10px] font-black px-3 py-1 bg-white/5 rounded-lg text-emerald-400/80 mono">
-                      {(user.bottles * 0.25).toFixed(2)} KG
+                      {(user.bottles * 0.08).toFixed(2)}
                     </span>
                   </td>
                   <td className="px-10 py-6 text-right">
@@ -111,7 +111,7 @@ const LeaderboardView: React.FC = () => {
       
       <div className="p-8 bg-black/40 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-          <i className="fas fa-info-circle mr-2"></i> Rank is updated every time a bottle is detected.
+          <i className="fas fa-info-circle mr-2"></i> Rank updates in real-time based on ESP32 signal ingestion.
         </p>
         <div className="flex space-x-2">
            <div className="w-2 h-2 rounded-full bg-emerald-500/20"></div>

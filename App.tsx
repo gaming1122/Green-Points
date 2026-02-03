@@ -40,7 +40,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const syncWithDb = () => {
       if (currentUser) {
-        const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}}');
+        const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}, "EMPLOYEE": {}}');
         const latest = db[currentUser.role]?.[currentUser.id]?.profile;
         if (latest && JSON.stringify(latest) !== JSON.stringify(currentUser)) {
           setCurrentUser(latest);
@@ -61,7 +61,7 @@ const App: React.FC = () => {
 
     if (loginId && role && !currentUser) {
       try {
-        const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}}');
+        const db = JSON.parse(localStorage.getItem('gp_database') || '{"ADMIN": {}, "USER": {}, "EMPLOYEE": {}}');
         const record = db[role]?.[loginId];
         
         if (record) {
@@ -77,7 +77,11 @@ const App: React.FC = () => {
 
   const handleLogin = (user: UserProfile) => {
     setCurrentUser(user);
-    setActiveView(user.role === 'ADMIN' ? ViewType.DASHBOARD : ViewType.MY_PROFILE);
+    if (user.role === 'ADMIN' || user.role === 'EMPLOYEE') {
+      setActiveView(ViewType.DASHBOARD);
+    } else {
+      setActiveView(ViewType.MY_PROFILE);
+    }
   };
 
   const handleLogout = () => {
@@ -99,7 +103,7 @@ const App: React.FC = () => {
       case ViewType.LEADERBOARD:
         return <LeaderboardView />;
       case ViewType.USER_MANAGEMENT:
-        return <UserManagementView />;
+        return <UserManagementView currentUser={currentUser} />;
       case ViewType.SYSTEM_LOGS:
         return <SystemLogsView />;
       case ViewType.IOT_FIRMWARE:
@@ -109,7 +113,7 @@ const App: React.FC = () => {
       case ViewType.MY_PROFILE:
         return <UserPortalView user={currentUser} onUpdate={setCurrentUser} />;
       case ViewType.DASHBOARD:
-        return currentUser.role === 'ADMIN' ? <DashboardView /> : <UserPortalView user={currentUser} onUpdate={setCurrentUser} />;
+        return (currentUser.role === 'ADMIN' || currentUser.role === 'EMPLOYEE') ? <DashboardView /> : <UserPortalView user={currentUser} onUpdate={setCurrentUser} />;
       default:
         return <DashboardView />;
     }
@@ -162,7 +166,7 @@ const App: React.FC = () => {
             <div className="flex items-center space-x-3 md:space-x-6">
               <div className="hidden sm:flex flex-col items-end">
                 <span className={`text-xs xl:text-sm font-black ${currentUser.theme === 'LIGHT' ? 'text-slate-800' : 'text-white'}`}>{currentUser.name}</span>
-                <span className={`text-[8px] font-bold uppercase tracking-widest ${currentUser.role === 'ADMIN' ? 'text-indigo-500' : 'text-emerald-500'}`}>{currentUser.role}</span>
+                <span className={`text-[8px] font-bold uppercase tracking-widest ${currentUser.role === 'ADMIN' ? 'text-indigo-500' : (currentUser.role === 'EMPLOYEE' ? 'text-amber-500' : 'text-emerald-500')}`}>{currentUser.role}</span>
               </div>
               <img src={displayAvatar} className={`w-10 h-10 md:w-11 md:h-11 rounded-2xl border-2 object-cover transition-transform hover:scale-105 cursor-pointer ${currentUser.theme === 'LIGHT' ? 'border-slate-100 bg-slate-100 shadow-md' : 'border-[#1e293b] bg-[#1e293b]'}`} alt="Profile" />
             </div>

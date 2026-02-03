@@ -19,6 +19,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onLogout, r
     { id: ViewType.SYSTEM_LOGS, icon: 'fa-list-ul', label: 'Cloud Logs', desc: 'Traffic stream' },
   ];
 
+  const employeeItems = [
+    { id: ViewType.DASHBOARD, icon: 'fa-table-columns', label: 'Telemetry', desc: 'System status' },
+    { id: ViewType.USER_MANAGEMENT, icon: 'fa-users-gear', label: 'Moderation', desc: 'User control' },
+    { id: ViewType.SYSTEM_LOGS, icon: 'fa-list-ul', label: 'Logs', desc: 'System trail' },
+  ];
+
   const userItems = [
     { id: ViewType.MY_PROFILE, icon: 'fa-user-circle', label: 'My Wallet', desc: 'Point balance' },
     { id: ViewType.AI_INSIGHTS, icon: 'fa-sparkles', label: 'Neural AI', desc: 'Eco analysis' },
@@ -29,18 +35,21 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onLogout, r
     { id: ViewType.SETTINGS, icon: 'fa-gears', label: 'Settings', desc: 'Config profile' },
   ];
 
-  const activeItems = role === 'ADMIN' ? [...adminItems, ...commonItems] : [...userItems, ...commonItems];
+  let activeItems = [];
+  if (role === 'ADMIN') activeItems = [...adminItems, ...commonItems];
+  else if (role === 'EMPLOYEE') activeItems = [...employeeItems, ...commonItems];
+  else activeItems = [...userItems, ...commonItems];
   
   const isLight = theme === 'LIGHT';
-  const themeColor = role === 'ADMIN' ? (isLight ? 'text-indigo-600' : 'text-indigo-400') : (isLight ? 'text-emerald-600' : 'text-emerald-500');
-  const activeBg = role === 'ADMIN' ? 'bg-indigo-600' : 'bg-emerald-500';
+  const themeColor = role === 'ADMIN' ? (isLight ? 'text-indigo-600' : 'text-indigo-400') : (role === 'EMPLOYEE' ? (isLight ? 'text-amber-600' : 'text-amber-400') : (isLight ? 'text-emerald-600' : 'text-emerald-500'));
+  const activeBg = role === 'ADMIN' ? 'bg-indigo-600' : (role === 'EMPLOYEE' ? 'bg-amber-600' : 'bg-emerald-500');
 
   return (
     <aside className={`w-72 md:w-80 h-full flex flex-col transition-all duration-300 overflow-y-auto ${isLight ? 'bg-white border-r border-slate-200' : 'bg-[#05070a] border-r border-white/5'}`}>
       <div className="p-6 md:p-8 pb-8 md:pb-10">
         <div className="flex items-center space-x-4">
           <div className={`${activeBg} w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shadow-xl`}>
-            <i className={`fas ${role === 'ADMIN' ? 'fa-shield-halved' : 'fa-leaf'} text-white text-lg`}></i>
+            <i className={`fas ${role === 'ADMIN' ? 'fa-shield-halved' : (role === 'EMPLOYEE' ? 'fa-user-tie' : 'fa-leaf')} text-white text-lg`}></i>
           </div>
           <div className="min-w-0">
             <h2 className={`text-lg md:text-xl font-black tracking-tighter leading-none truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>GP-<span className={themeColor}>{role}</span></h2>

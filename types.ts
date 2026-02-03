@@ -1,5 +1,5 @@
 
-export type UserRole = 'ADMIN' | 'USER';
+export type UserRole = 'ADMIN' | 'USER' | 'EMPLOYEE';
 export type Gender = 'MALE' | 'FEMALE';
 export type AppTheme = 'DARK' | 'LIGHT';
 

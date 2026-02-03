@@ -1,17 +1,16 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing Gemini API Key. Please configure API_KEY in Vercel environment variables.");
-  }
-  return new GoogleGenAI({ apiKey });
-};
+// Initialize the GoogleGenAI client following guidelines:
+// - Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+// - Use process.env.API_KEY string directly.
+// - Assume API_KEY is pre-configured and accessible.
 
 export async function getSustainabilityInsights(bottlesCount: number) {
   try {
-    const ai = getAiClient();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Using gemini-3-flash-preview for basic text analysis tasks
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Calculate the environmental impact of collecting ${bottlesCount} plastic bottles. 
@@ -21,6 +20,8 @@ export async function getSustainabilityInsights(bottlesCount: number) {
       3. A fun comparison (e.g., energy to power a laptop).
       Keep it brief and professional.`,
     });
+
+    // Guideline: Simple and direct way to get generated text content is by accessing the .text property.
     return response.text || "Insights currently unavailable.";
   } catch (error) {
     console.error("Gemini Error:", error);
